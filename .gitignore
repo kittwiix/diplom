@@ -1,0 +1,9 @@
+out/
+.vs/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# личные заметки и шпаргалки — не в git
+docs/SPEECH.md
+docs/CHEATSHEET.md
