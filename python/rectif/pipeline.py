@@ -11,6 +11,8 @@ from .imageops import resize, smooth, to_gray
 from .lines import LineFit, detect_lines, dominant_angle, edge_responses
 from .warp import warp_perspective
 
+MIN_PEAK_Z = 6.0  # минимальный z-score пика: ниже — считаем шумом/градиентом
+
 
 @dataclass
 class Analysis:
@@ -52,6 +54,9 @@ def analyze(rgb, work_width=900, n_strips=24, max_rails=10):
     verticals = detect_lines(r_v, "v", n_strips=max(12, n_strips // 2), min_dist=6,
                              max_peaks=24, tol=2.0, max_lines=8)
 
+    # отбраковка «плавных» кадров: пик должен быть явно выше шума (z-score)
+    rails = [l for l in rails if getattr(l, "peak", 99.0) >= MIN_PEAK_Z]
+    verticals = [l for l in verticals if getattr(l, "peak", 99.0) >= MIN_PEAK_Z]
     if rails:
         s_max = max(l.support for l in rails)
         rails = [l for l in rails if l.support >= 0.18 * s_max]
@@ -149,7 +154,7 @@ def rectify(rgb, mode="directions", crop="none", work_width=900, max_side=2400, 
             "rails": len(rails),
             "rms_deg": rms,
             "spread_deg": spread,
-            "score": float(max(0.0, min(1.0, 1.0 - (rms or 0.0) / 3.0))),
+            "score": float(max(0.0, min(1.0, (1.0 - (rms or 0.0) / 3.0) * min(1.0, len(rails) / 3.0)))),
             "ok": bool(len(rails) >= 2 and rms is not None and rms < 1.5),
         },
         "theta_h_deg": an.theta_h,

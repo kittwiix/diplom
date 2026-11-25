@@ -42,13 +42,33 @@ python -m rectif.cli -i ../photo.jpeg -o ../out/photo_rect.jpg \
 
 Ключи: `--mode vp|directions|roll`, `--crop none|valid|shelf|auto`, `--max-side`, `--cells-dir`, `--json`, `--debug-dir`.
 
+## Ручной тест на своих фото
+
+```bash
+cd python
+python tools/try_photo.py path/to/photo.jpg    # одно фото
+python tools/try_photo.py ../data/samples      # вся папка
+```
+
+В `out/try/<имя>/` появятся: `_rectified.jpg` (результат), `_overlay.jpg` (найденные кромки, вертикали, горизонтали),
+`_cells.jpg` (полосы полок), `_meta.json` (H, точки схода, углы, качество).
+В консоли — таблица `rails / cells / rms / score / ok`.
+
+Что смотреть:
+1. в `_overlay` красные кромки должны лежать на полках (а не на товарах или тексте);
+2. `ok = yes` и `rms < 1.5` — геометрия сошлась;
+3. в `_cells` ценники читаются и стоят горизонтально.
+
+Если кромок меньше двух — автоматически включается режим только поворота (и `ok = no`).
+Опции: `--mode vp|directions|roll`, `--crop valid|none|shelf|auto`, `--max-side 2000`.
+
 ## Структура
 
 ```
 docs/       PLAN.md, experiments/m0 (анализ эталонных пар)
 python/
   rectif/   imageops, lines, geometry, warp, pipeline, debug, io, cli
-  tools/    demo_stage1.py, make_report.py, (далее) label_tool.html, make_synthetic.py, export_onnx.py
+  tools/    demo_stage1.py, make_report.py, try_photo.py, (далее) label_tool.html, make_synthetic.py
   tests/    test_geometry.py, test_pipeline.py
 ml/         (далее) обучение модели
 models/     (далее) onnx + manifest

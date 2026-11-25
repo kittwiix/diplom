@@ -24,6 +24,7 @@ class LineFit:
     support: float
     inliers: int
     coverage: float = 0.0
+    peak: float = 0.0
     points: np.ndarray = field(default_factory=lambda: np.zeros((0, 2)))
 
     def at(self, x):
@@ -43,11 +44,17 @@ def _peaks_1d(prof, min_dist, max_peaks, z_min=3.0):
     p = box_blur(np.asarray(prof, dtype=np.float32)[None, :], 1)[0]
     if p.size < 3:
         return [], []
+    # нет реальной кромочной энергии (плавный градиент / пустой кадр)
+    if float(p.max()) < 0.01:
+        return [], []
     med = float(np.median(p))
-    mad = float(np.median(np.abs(p - med))) + 1e-6
+    # абсолютный пол MAD: у идеально ровного профиля шум не должен давать z -> бесконечность
+    mad = max(float(np.median(np.abs(p - med))), 1e-3) + 1e-6
     z = (p - med) / mad
     is_max = (z >= np.roll(z, 1)) & (z >= np.roll(z, -1))
     idx = np.nonzero(is_max & (z > z_min))[0]
+    # края профиля дают артефакты высокочастотного фильтра — отбрасываем
+    idx = idx[(idx > 3) & (idx < len(z) - 4)]
     if idx.size == 0:
         return [], []
     keep = []
@@ -142,7 +149,8 @@ def _ransac_lines(pts, span, tol=2.0, slope_limit=0.6, iters=1200,
             continue
         lines.append(LineFit(a=a, b=b, angle_deg=float(np.degrees(np.arctan(a))),
                              support=float(P[inl, 2].sum()), inliers=int(inl.sum()),
-                             coverage=cov, points=P[inl, :2].copy()))
+                             coverage=cov, peak=float(P[inl, 2].max()),
+                             points=P[inl, :2].copy()))
         alive[idx[inl]] = False
     return lines
 
@@ -165,7 +173,7 @@ def detect_lines(resp, orientation="h", **kw):
         out.append(LineFit(a=ln.a, b=ln.b,
                            angle_deg=float(np.degrees(np.arctan2(1.0, ln.a))),
                            support=ln.support, inliers=ln.inliers, coverage=ln.coverage,
-                           points=ln.points[:, ::-1].copy()))
+                           peak=ln.peak, points=ln.points[:, ::-1].copy()))
     return sorted(out, key=lambda l: l.b)
 
 
