@@ -5,7 +5,6 @@
 целевая платформа — Android (Java).
 
 - план работ: [docs/PLAN.md](docs/PLAN.md)
-- что сказать на защите/научруку: [docs/SPEECH.md](docs/SPEECH.md)
 - теория: `docs/THEORY.md` (в работе), контракт ONNX: `docs/SPEC-model-io.md` (в работе)
 
 ## Что уже работает (стадия 1)
@@ -46,7 +45,7 @@ python -m rectif.cli -i ../photo.jpeg -o ../out/photo_rect.jpg \
 ## Структура
 
 ```
-docs/       PLAN.md, SPEECH.md, experiments/m0 (анализ эталонных пар)
+docs/       PLAN.md, experiments/m0 (анализ эталонных пар)
 python/
   rectif/   imageops, lines, geometry, warp, pipeline, debug, io, cli
   tools/    demo_stage1.py, make_report.py, (далее) label_tool.html, make_synthetic.py, export_onnx.py
