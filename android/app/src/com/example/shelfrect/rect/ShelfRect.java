@@ -142,6 +142,14 @@ public final class ShelfRect {
         int outW = Math.max(1, (int) Math.round(spanX * sc));
         int outH = Math.max(1, (int) Math.round(spanY * sc));
 
+        // обрезаем чёрные углы: максимальный вписанный прямоугольник
+        int[] rect = largestInscribedRect(hf, w, h, outW, outH);
+        if (rect != null) {
+            hf = Geo.mul(Geo.translation(-rect[0], -rect[1]), hf);
+            outW = rect[2] - rect[0];
+            outH = rect[3] - rect[1];
+        }
+
         double acc = 0.0;
         for (Line ln : rails) {
             double ang = Geo.lineAngle(hf, ln.a, ln.b / sw, w);
@@ -513,6 +521,86 @@ public final class ShelfRect {
             return Double.NaN;
         }
         return x;
+    }
+
+    /** Наибольший прямоугольник выхода, целиком попадающий в исходный кадр. */
+    private static int[] largestInscribedRect(double[] h, int w, int hh, int outW, int outH) {
+        double[] hi = Geo.inv(h);
+        int rows = 120;
+        int cols = 240;
+        int[] lo = new int[rows];
+        int[] hiIdx = new int[rows];
+        for (int r = 0; r < rows; r++) {
+            lo[r] = -1;
+            hiIdx[r] = -1;
+            double y = rows == 1 ? 0 : (double) r / (rows - 1) * (outH - 1);
+            int bestLen = 0;
+            int curStart = -1;
+            for (int c = 0; c < cols; c++) {
+                double x = cols == 1 ? 0 : (double) c / (cols - 1) * (outW - 1);
+                double den = hi[6] * x + hi[7] * y + hi[8];
+                boolean inside = false;
+                if (Math.abs(den) > 1e-12) {
+                    double sx = (hi[0] * x + hi[1] * y + hi[2]) / den;
+                    double sy = (hi[3] * x + hi[4] * y + hi[5]) / den;
+                    inside = sx >= -0.5 && sx <= w - 0.5 && sy >= -0.5 && sy <= hh - 0.5;
+                }
+                if (inside) {
+                    if (curStart < 0) {
+                        curStart = c;
+                    }
+                    int len = c - curStart + 1;
+                    if (len > bestLen) {
+                        bestLen = len;
+                        lo[r] = curStart;
+                        hiIdx[r] = c;
+                    }
+                } else {
+                    curStart = -1;
+                }
+            }
+        }
+        double bestArea = 0;
+        int bi0 = -1;
+        int bi1 = -1;
+        int bx0 = 0;
+        int bx1 = 0;
+        for (int i0 = 0; i0 < rows; i0++) {
+            if (lo[i0] < 0) {
+                continue;
+            }
+            int xLo = Integer.MIN_VALUE;
+            int xHi = Integer.MAX_VALUE;
+            for (int i1 = i0; i1 < rows; i1++) {
+                if (lo[i1] < 0) {
+                    break;
+                }
+                xLo = Math.max(xLo, lo[i1]);
+                xHi = Math.min(xHi, hiIdx[i1]);
+                if (xHi <= xLo) {
+                    break;
+                }
+                double area = (double) (xHi - xLo) * (i1 - i0);
+                if (area > bestArea) {
+                    bestArea = area;
+                    bi0 = i0;
+                    bi1 = i1;
+                    bx0 = xLo;
+                    bx1 = xHi;
+                }
+            }
+        }
+        if (bi0 < 0 || bestArea <= 0) {
+            return null;
+        }
+        int y0 = (int) Math.round((double) bi0 / (rows - 1) * (outH - 1));
+        int y1 = (int) Math.round((double) bi1 / (rows - 1) * (outH - 1));
+        int x0 = (int) Math.round((double) bx0 / (cols - 1) * (outW - 1));
+        int x1 = (int) Math.round((double) bx1 / (cols - 1) * (outW - 1));
+        if (x1 - x0 < 64 || y1 - y0 < 64) {
+            return null;
+        }
+        return new int[]{x0, y0, x1, y1};
     }
 
     /**

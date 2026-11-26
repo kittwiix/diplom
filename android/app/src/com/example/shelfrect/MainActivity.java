@@ -54,9 +54,26 @@ public class MainActivity extends Activity {
 
         findViewById(R.id.btnPick).setOnClickListener(v -> pick());
         btnSave.setOnClickListener(v -> saveBitmap(outBitmap, "shelf_"));
+
+        String dbgPath = getIntent() != null ? getIntent().getStringExtra("image_path") : null;
+        if (dbgPath != null && dbgPath.length() > 0) {
+            tvInfo.setText("Загрузка…");
+            pool.execute(() -> processFile(dbgPath));
+        }
         findViewById(R.id.btnSaveMarkup).setOnClickListener(
                 v -> saveBitmap(markupBitmap, "shelf_markup_"));
         btnSave.setEnabled(false);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String p = intent != null ? intent.getStringExtra("image_path") : null;
+        if (p != null && p.length() > 0) {
+            tvInfo.setText("Загрузка…");
+            pool.execute(() -> processFile(p));
+        }
     }
 
     private void pick() {
@@ -86,8 +103,28 @@ public class MainActivity extends Activity {
     }
 
     private void process(Uri uri) {
+        Bitmap bmp;
         try {
-            final Bitmap src = load(uri);
+            bmp = load(uri);
+        } catch (Exception e) {
+            bmp = null;
+        }
+        handle(bmp);
+    }
+
+    private void processFile(String path) {
+        Bitmap bmp;
+        try {
+            bmp = loadFile(path);
+        } catch (Exception e) {
+            bmp = null;
+        }
+        handle(bmp);
+    }
+
+    private void handle(Bitmap loaded) {
+        try {
+            final Bitmap src = loaded;
             if (src == null) {
                 ui(() -> tvInfo.setText("Не удалось открыть фото"));
                 return;
@@ -130,6 +167,42 @@ public class MainActivity extends Activity {
             final String m = t.getClass().getSimpleName() + ": " + t.getMessage();
             ui(() -> tvInfo.setText("Ошибка: " + m));
         }
+    }
+
+    private Bitmap loadFile(String path) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, bounds);
+        int sample = 1;
+        while (bounds.outWidth / sample > 2200 || bounds.outHeight / sample > 2200) {
+            sample *= 2;
+        }
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = sample;
+        Bitmap bmp = BitmapFactory.decodeFile(path, opts);
+        if (bmp == null) {
+            return null;
+        }
+        try {
+            ExifInterface ex = new ExifInterface(path);
+            int ori = ex.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            int rot = 0;
+            if (ori == ExifInterface.ORIENTATION_ROTATE_90) {
+                rot = 90;
+            } else if (ori == ExifInterface.ORIENTATION_ROTATE_180) {
+                rot = 180;
+            } else if (ori == ExifInterface.ORIENTATION_ROTATE_270) {
+                rot = 270;
+            }
+            if (rot != 0) {
+                Matrix m = new Matrix();
+                m.postRotate(rot);
+                bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
+            }
+        } catch (Exception ignored) {
+            // EXIF не обязателен
+        }
+        return bmp;
     }
 
     private Bitmap load(Uri uri) throws Exception {

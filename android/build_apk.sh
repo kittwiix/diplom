@@ -17,7 +17,7 @@ mkdir -p "$B" "$ROOT/build/gen" "$ROOT/build/classes-android" "$ROOT/build/dex"
     --manifest "$APP/AndroidManifest.xml" -R "$B/res.zip" \
     --java "$ROOT/build/gen" --auto-add-overlay
 
-javac --release 8 -classpath "$JAR" -d "$ROOT/build/classes-android" \
+javac --release 8 -encoding UTF-8 -classpath "$JAR" -d "$ROOT/build/classes-android" \
     $(find "$ROOT/build/gen" "$APP/src" -name "*.java")
 
 "$BT/d8.bat" --release --lib "$JAR" --min-api 24 --output "$ROOT/build/dex" \
@@ -33,7 +33,8 @@ PY
 
 "$BT/zipalign.exe" -f 4 "$B/app-dex.apk" "$B/app-aligned.apk"
 
-KS="$B/debug.keystore"
+KS="$ROOT/keystore/debug.keystore"
+mkdir -p "$ROOT/keystore"
 if [ ! -f "$KS" ]; then
     keytool -genkeypair -noprompt -keystore "$KS" -storepass android -keypass android \
         -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
