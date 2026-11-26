@@ -62,6 +62,22 @@ python tools/try_photo.py ../data/samples      # вся папка
 Если кромок меньше двух — автоматически включается режим только поворота (и `ok = no`).
 Опции: `--mode vp|directions|roll`, `--crop valid|none|shelf|auto`, `--max-side 2000`.
 
+## Android-приложение (без нейросетей)
+
+`android/` — простое приложение: фото из галереи -> выпрямленный кадр. Без интернета, без моделей.
+Ядро (`android/app/src/com/example/shelfrect/rect/`) — порт пайплайна на Java: те же кромки полок,
+точка схода, гомография и варп (проверено на тех же фото: остаточный угол 0.07-0.33°, ~250 мс).
+
+Сборка APK без Gradle (нужны только SDK build-tools и JDK):
+
+```bash
+cd android
+./build_apk.sh                     # -> build/apk/ShelfRect.apk
+adb install -r build/apk/ShelfRect.apk
+```
+
+minSdk 24 (Android 7.0), targetSdk 34, подпись debug.
+
 ## Структура
 
 ```
@@ -72,5 +88,5 @@ python/
   tests/    test_geometry.py, test_pipeline.py
 ml/         (далее) обучение модели
 models/     (далее) onnx + manifest
-java/, android/  (далее) порт и приложение
+android/    приложение (Java, без Gradle): app/, tools/JavaRectTest.java, build_apk.sh
 ```

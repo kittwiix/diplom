@@ -7,3 +7,8 @@ __pycache__/
 # личные заметки и шпаргалки — не в git
 docs/SPEECH.md
 docs/CHEATSHEET.md
+
+# сборка Android
+android/build/
+*.keystore
+*.apk
