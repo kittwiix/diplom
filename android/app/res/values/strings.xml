@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Выпрямление полки</string>
+    <string name="app_name_crop">Полка (с обрезкой)</string>
     <string name="hint">Выберите фото полки — приложение выпрямит кадр по линиям ценников.</string>
     <string name="pick">Выбрать фото из галереи</string>
     <string name="idle">Фото не выбрано</string>

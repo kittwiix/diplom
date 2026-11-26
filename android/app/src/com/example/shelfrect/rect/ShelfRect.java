@@ -49,8 +49,6 @@ public final class ShelfRect {
     private static final int MAX_LINES = 8;
     private static final int RANSAC_ITERS = 1200;
     private static final double TOL = 2.0;
-    /** true — обрезать чёрные углы; в прототипе выключено намеренно. */
-    private static final boolean CROP_VALID = false;
 
     private ShelfRect() {
     }
@@ -146,7 +144,7 @@ public final class ShelfRect {
 
         // ПРОТОТИП: чёрные углы оставляем специально — по ним видно, что кадр повёрнут
         // и что часть исходника вышла за пределы прямоугольника.
-        if (CROP_VALID) {
+        if (BuildFlags.CROP_VALID) {
             int[] rect = largestInscribedRect(hf, w, h, outW, outH);
             if (rect != null) {
                 hf = Geo.mul(Geo.translation(-rect[0], -rect[1]), hf);

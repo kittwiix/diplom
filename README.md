@@ -73,9 +73,13 @@ python tools/try_photo.py ../data/samples      # вся папка
 
 ```bash
 cd android
-./build_apk.sh                     # -> build/apk/ShelfRect.apk
+./build_apk.sh proto   # прототип: чёрные углы видны  -> build/apk/ShelfRect.apk
+./build_apk.sh crop    # с обрезкой пустых углов      -> build/apk/ShelfRect_crop.apk
 adb install -r build/apk/ShelfRect.apk
+adb install -r build/apk/ShelfRect_crop.apk
 ```
+
+Две версии ставятся рядом (разные package: `com.example.shelfrect` и `com.example.shelfrect.crop`).
 
 minSdk 24 (Android 7.0), targetSdk 34, подпись debug.
 

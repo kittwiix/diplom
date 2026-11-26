@@ -159,9 +159,16 @@ public class MainActivity extends Activity {
             int[] px = new int[w * h];
             src.getPixels(px, 0, w, 0, 0, w, h);
 
+            android.util.Log.i("ShelfRect", "img " + w + "x" + h + " cfg=" + src.getConfig());
             long t0 = System.currentTimeMillis();
             ShelfRect.Result r = ShelfRect.rectify(px, w, h, MAX_SIDE);
             long dt = System.currentTimeMillis() - t0;
+            StringBuilder dbg = new StringBuilder();
+            for (double[] ln : r.railsSource) {
+                dbg.append(String.format(Locale.US, " (%.4f,%.1f)", ln[0], ln[1]));
+            }
+            android.util.Log.i("ShelfRect", "rails=" + r.rails + " rms=" + r.rmsDeg
+                    + " note=" + r.note + dbg);
 
             if (r.rails < 2) {
                 ui(() -> tvInfo.setText("Полки не найдены — нужно фото, где видны линии ценников."));
