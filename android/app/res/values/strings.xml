@@ -6,5 +6,6 @@
     <string name="idle">Фото не выбрано</string>
     <string name="before">До</string>
     <string name="after">После</string>
+    <string name="save_markup">Сохранить разметку</string>
     <string name="save">Сохранить результат в галерею</string>
 </resources>

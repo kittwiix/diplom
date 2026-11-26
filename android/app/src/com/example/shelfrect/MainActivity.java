@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
     private TextView tvInfo;
     private Button btnSave;
     private Bitmap outBitmap;
+    private Bitmap markupBitmap;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -52,7 +53,9 @@ public class MainActivity extends Activity {
         btnSave = findViewById(R.id.btnSave);
 
         findViewById(R.id.btnPick).setOnClickListener(v -> pick());
-        btnSave.setOnClickListener(v -> saveToGallery());
+        btnSave.setOnClickListener(v -> saveBitmap(outBitmap, "shelf_"));
+        findViewById(R.id.btnSaveMarkup).setOnClickListener(
+                v -> saveBitmap(markupBitmap, "shelf_markup_"));
         btnSave.setEnabled(false);
     }
 
@@ -110,11 +113,15 @@ public class MainActivity extends Activity {
                 return;
             }
             final Bitmap out = Bitmap.createBitmap(r.argb, r.width, r.height, Bitmap.Config.ARGB_8888);
+            final Bitmap markup = Bitmap.createBitmap(
+                    ShelfRect.drawOverlay(px, w, h, r.railsSource), w, h, Bitmap.Config.ARGB_8888);
+            markupBitmap = markup;
             final String msg = "Кромок полок: " + r.rails + "   ·   полос: " + r.cells
-                    + "\nОстаточный наклон: " + fmt(r.rmsDeg) + "°   ·   " + dt + " мс"
-                    + (r.ok ? "" : "\nНизкая уверенность — проверьте результат");
+                    + "\nРазброс углов до: " + fmt(r.spreadDeg) + "°  →  после: " + fmt(r.rmsDeg) + "°"
+                    + "\n" + dt + " мс" + (r.ok ? "" : "   ·   низкая уверенность");
             outBitmap = out;
             ui(() -> {
+                imgBefore.setImageBitmap(markup);
                 imgAfter.setImageBitmap(out);
                 tvInfo.setText(msg);
                 btnSave.setEnabled(true);
@@ -167,8 +174,8 @@ public class MainActivity extends Activity {
         return bmp;
     }
 
-    private void saveToGallery() {
-        if (outBitmap == null) {
+    private void saveBitmap(Bitmap bmp, String prefix) {
+        if (bmp == null) {
             return;
         }
         if (Build.VERSION.SDK_INT <= 28
@@ -179,7 +186,7 @@ public class MainActivity extends Activity {
             return;
         }
         try {
-            String name = "shelf_" + System.currentTimeMillis() + ".jpg";
+            String name = prefix + System.currentTimeMillis() + ".jpg";
             ContentValues cv = new ContentValues();
             cv.put(MediaStore.Images.Media.DISPLAY_NAME, name);
             cv.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
@@ -193,7 +200,7 @@ public class MainActivity extends Activity {
                 return;
             }
             try (OutputStream os = getContentResolver().openOutputStream(uri)) {
-                outBitmap.compress(Bitmap.CompressFormat.JPEG, 95, os);
+                bmp.compress(Bitmap.CompressFormat.JPEG, 95, os);
             }
             if (Build.VERSION.SDK_INT >= 29) {
                 cv.clear();

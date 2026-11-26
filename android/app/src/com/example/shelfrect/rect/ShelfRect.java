@@ -23,6 +23,8 @@ public final class ShelfRect {
         public double rmsDeg;
         public double score;
         public double angleDeg;
+        public double spreadDeg;
+        public double[][] railsSource = new double[0][];
         public boolean ok;
         public String note = "";
     }
@@ -70,6 +72,18 @@ public final class ShelfRect {
         List<Line> rails = detectLines(resp, ww, wh);
         res.rails = rails.size();
         res.cells = Math.max(0, rails.size() - 1);
+        double minAng = 1e9;
+        double maxAng = -1e9;
+        for (Line ln : rails) {
+            minAng = Math.min(minAng, ln.angle);
+            maxAng = Math.max(maxAng, ln.angle);
+        }
+        res.spreadDeg = maxAng - minAng;
+        res.railsSource = new double[rails.size()][2];
+        for (int i = 0; i < rails.size(); i++) {
+            res.railsSource[i][0] = rails.get(i).a;
+            res.railsSource[i][1] = rails.get(i).b / sw;
+        }
         if (rails.size() < 2) {
             res.note = "rails < 2";
             return res;
@@ -499,5 +513,51 @@ public final class ShelfRect {
             return Double.NaN;
         }
         return x;
+    }
+
+    /**
+     * Разметка кадра: красные — найденные кромки полок, зелёные — горизонтали
+     * на уровне кромки в центре кадра (видно, насколько кромки «веером»).
+     */
+    public static int[] drawOverlay(int[] src, int w, int h, double[][] rails) {
+        int[] out = src.clone();
+        if (rails == null || rails.length == 0) {
+            return out;
+        }
+        int lw = Math.max(4, (int) Math.round(Math.min(w, h) / 300.0));
+        for (double[] ln : rails) {
+            int x1 = w - 1;
+            int y0 = (int) Math.round(ln[1]);
+            int y1 = (int) Math.round(ln[0] * (w - 1) + ln[1]);
+            drawLine(out, w, h, 0, y0, x1, y1, 0xFFFF2A2A, lw);
+        }
+        for (double[] ln : rails) {
+            int yc = (int) Math.round(ln[0] * (w * 0.5) + ln[1]);
+            drawLine(out, w, h, 0, yc, w - 1, yc, 0xFF22DD55, lw);
+        }
+        return out;
+    }
+
+    private static void drawLine(int[] px, int w, int h, int x0, int y0, int x1, int y1,
+                                 int color, int width) {
+        int steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + 1;
+        int rad = Math.max(1, width / 2);
+        for (int i = 0; i <= steps; i++) {
+            double t = steps == 0 ? 0.0 : (double) i / steps;
+            int x = (int) Math.round(x0 + (x1 - x0) * t);
+            int y = (int) Math.round(y0 + (y1 - y0) * t);
+            for (int dy = -rad; dy <= rad; dy++) {
+                int yy = y + dy;
+                if (yy < 0 || yy >= h) {
+                    continue;
+                }
+                for (int dx = -rad; dx <= rad; dx++) {
+                    int xx = x + dx;
+                    if (xx >= 0 && xx < w) {
+                        px[yy * w + xx] = color;
+                    }
+                }
+            }
+        }
     }
 }
