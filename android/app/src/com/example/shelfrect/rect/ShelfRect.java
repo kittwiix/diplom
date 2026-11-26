@@ -49,6 +49,8 @@ public final class ShelfRect {
     private static final int MAX_LINES = 8;
     private static final int RANSAC_ITERS = 1200;
     private static final double TOL = 2.0;
+    /** true — обрезать чёрные углы; в прототипе выключено намеренно. */
+    private static final boolean CROP_VALID = false;
 
     private ShelfRect() {
     }
@@ -142,12 +144,15 @@ public final class ShelfRect {
         int outW = Math.max(1, (int) Math.round(spanX * sc));
         int outH = Math.max(1, (int) Math.round(spanY * sc));
 
-        // обрезаем чёрные углы: максимальный вписанный прямоугольник
-        int[] rect = largestInscribedRect(hf, w, h, outW, outH);
-        if (rect != null) {
-            hf = Geo.mul(Geo.translation(-rect[0], -rect[1]), hf);
-            outW = rect[2] - rect[0];
-            outH = rect[3] - rect[1];
+        // ПРОТОТИП: чёрные углы оставляем специально — по ним видно, что кадр повёрнут
+        // и что часть исходника вышла за пределы прямоугольника.
+        if (CROP_VALID) {
+            int[] rect = largestInscribedRect(hf, w, h, outW, outH);
+            if (rect != null) {
+                hf = Geo.mul(Geo.translation(-rect[0], -rect[1]), hf);
+                outW = rect[2] - rect[0];
+                outH = rect[3] - rect[1];
+            }
         }
 
         double acc = 0.0;
