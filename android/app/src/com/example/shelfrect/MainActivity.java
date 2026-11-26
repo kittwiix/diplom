@@ -8,6 +8,8 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
@@ -31,7 +33,7 @@ import java.util.concurrent.Executors;
 public class MainActivity extends Activity {
 
     private static final int REQ_PICK = 1001;
-    private static final int MAX_SIDE = 1600;
+    private static final int MAX_SIDE = 1400;
 
     private final ExecutorService pool = Executors.newSingleThreadExecutor();
 
@@ -83,6 +85,19 @@ public class MainActivity extends Activity {
         startActivityForResult(Intent.createChooser(i, "Фото полки"), REQ_PICK);
     }
 
+
+    /** Освобождает битмап, который сейчас показан в ImageView. */
+    private static void releaseImage(ImageView view) {
+        Drawable d = view.getDrawable();
+        view.setImageDrawable(null);
+        if (d instanceof BitmapDrawable) {
+            Bitmap b = ((BitmapDrawable) d).getBitmap();
+            if (b != null && !b.isRecycled()) {
+                b.recycle();
+            }
+        }
+    }
+
     private void ui(Runnable r) {
         runOnUiThread(r);
     }
@@ -130,10 +145,13 @@ public class MainActivity extends Activity {
                 return;
             }
             ui(() -> {
-                imgBefore.setImageBitmap(src);
-                imgAfter.setImageBitmap(null);
-                tvInfo.setText("Обработка…");
+                releaseImage(imgBefore);
+                releaseImage(imgAfter);
+                markupBitmap = null;
+                outBitmap = null;
                 btnSave.setEnabled(false);
+                imgBefore.setImageBitmap(src);
+                tvInfo.setText("Обработка…");
             });
 
             int w = src.getWidth();
@@ -158,6 +176,8 @@ public class MainActivity extends Activity {
                     + "\n" + dt + " мс" + (r.ok ? "" : "   ·   низкая уверенность");
             outBitmap = out;
             ui(() -> {
+                releaseImage(imgBefore);
+                releaseImage(imgAfter);
                 imgBefore.setImageBitmap(markup);
                 imgAfter.setImageBitmap(out);
                 tvInfo.setText(msg);
@@ -174,7 +194,7 @@ public class MainActivity extends Activity {
         bounds.inJustDecodeBounds = true;
         BitmapFactory.decodeFile(path, bounds);
         int sample = 1;
-        while (bounds.outWidth / sample > 2200 || bounds.outHeight / sample > 2200) {
+        while (bounds.outWidth / sample > 1800 || bounds.outHeight / sample > 1800) {
             sample *= 2;
         }
         BitmapFactory.Options opts = new BitmapFactory.Options();
@@ -197,7 +217,11 @@ public class MainActivity extends Activity {
             if (rot != 0) {
                 Matrix m = new Matrix();
                 m.postRotate(rot);
-                bmp = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
+                Bitmap rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
+                if (rotated != bmp) {
+                    bmp.recycle();
+                }
+                bmp = rotated;
             }
         } catch (Exception ignored) {
             // EXIF не обязателен
@@ -213,7 +237,7 @@ public class MainActivity extends Activity {
             BitmapFactory.decodeStream(in, null, bounds);
         }
         int sample = 1;
-        while (bounds.outWidth / sample > 2200 || bounds.outHeight / sample > 2200) {
+        while (bounds.outWidth / sample > 1800 || bounds.outHeight / sample > 1800) {
             sample *= 2;
         }
         BitmapFactory.Options opts = new BitmapFactory.Options();
